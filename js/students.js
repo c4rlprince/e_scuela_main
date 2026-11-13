@@ -291,6 +291,18 @@ async function confirmDeleteStudent() {
 
   if (val("fEditId") === id) closeStudentForm();
 
+  if (!API_BASE_URL) {
+    data.students = data.students.filter(student => student.id !== id);
+    data.enrollments = data.enrollments.filter(enrollment => enrollment.student !== id);
+    delete data.grades[id];
+    data.schedules = data.schedules.filter(schedule => schedule.studentId !== id);
+    Object.values(data.attendance || {}).forEach(records => delete records[id]);
+    persist();
+    renderAll();
+    toast(`Removed locally: ${id}. This change is only in this browser.`);
+    return;
+  }
+
   try {
     await fetch(`${API_BASE_URL}/students/${encodeURIComponent(id)}`, { method: "DELETE" });
     if (typeof syncFromDatabase === "function") await syncFromDatabase();
