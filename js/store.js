@@ -570,9 +570,13 @@ const avgOf = list => {
 const val = id => $(id) ? $(id).value.trim() : "";
 
 // ==================== MYSQL BACKEND SYNC ====================
-const API_BASE_URL = "http://localhost:3000/api";
+const isLocalDevelopment = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+const API_BASE_URL = (window.E_SCUELA_API_URL || (isLocalDevelopment ? "http://localhost:3000/api" : ""))
+  .replace(/\/+$/, "");
 
 async function syncFromDatabase() {
+  if (!API_BASE_URL) return;
+
   try {
     const res = await fetch(`${API_BASE_URL}/bootstrap`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

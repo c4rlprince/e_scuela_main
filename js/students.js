@@ -171,6 +171,21 @@ async function saveStudent() {
       }
     }
 
+    if (!API_BASE_URL) {
+      Object.assign(existing, {
+        name: fullName,
+        grade,
+        section: updatedSection,
+        contact,
+        guardian
+      });
+      persist();
+      closeStudentForm();
+      renderAll();
+      toast(`Updated locally: ${fullName} (${editId}). This change is only in this browser.`);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/students`, {
         method: "POST",
@@ -202,6 +217,25 @@ async function saveStudent() {
 
   if (!/^\d{4}-\d{3}$/.test(id)) return toast("Student ID must follow 0000-000 format.");
   if (data.students.some(x => x.id === id)) return toast("Student ID already exists.");
+
+  if (!API_BASE_URL) {
+    data.students.push({
+      id,
+      username: id,
+      password: id,
+      name: fullName,
+      grade,
+      section: "Pending Enrollment",
+      status: "Pending",
+      contact,
+      guardian
+    });
+    persist();
+    closeStudentForm();
+    renderAll();
+    toast(`Saved locally: ${fullName} (${id}). This change is only in this browser.`);
+    return;
+  }
 
   try {
     const res = await fetch(`${API_BASE_URL}/students`, {

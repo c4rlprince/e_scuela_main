@@ -139,20 +139,46 @@ async function loginFaculty(username, password) {
   const loginError = $("loginError");
   loginError.textContent = "";
 
+  if (!API_BASE_URL) {
+    return loginOfflineFaculty(username, password);
+  }
+
+  let response;
   try {
-    const response = await fetch(`${API_BASE_URL}/login`, {
+    response = await fetch(`${API_BASE_URL}/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password })
     });
-    const result = await response.json();
+  } catch (error) {
+    console.warn("Faculty login API unavailable; trying a demo account offline:", error);
+    return loginOfflineFaculty(username, password);
+  }
 
-    if (!response.ok) {
-      loginError.textContent = result.message || "Invalid username or password.";
+  let result;
+  try {
+    result = await response.json();
+  } catch (error) {
+    console.error("Could not read faculty login response:", error);
+    loginError.textContent = "The login service returned an invalid response.";
+    return;
+  }
+
+  if (!response.ok) {
+    if (response.status >= 500) {
+      return loginOfflineFaculty(username, password);
+    }
+    loginError.textContent = result.message || "Invalid username or password.";
+    return;
+  }
+
+  try {
+    const fac = result.faculty;
+    if (!fac || !fac.id) {
+      loginError.textContent = "The login service returned an invalid faculty account.";
       return;
     }
 
-    const fac = result.faculty;
     const facultyList = data.facultyList || (data.facultyList = []);
     const existingIndex = facultyList.findIndex(f => f.id === fac.id);
     if (existingIndex === -1) {
@@ -166,9 +192,41 @@ async function loginFaculty(username, password) {
     saveSession();
     openFacultyPortal();
   } catch (error) {
-    console.error("Faculty login request failed:", error);
-    loginError.textContent = "Could not connect to the database. Please try again.";
+    console.error("Faculty login failed:", error);
+    loginError.textContent = "Unable to open the faculty account.";
   }
+}
+
+function loginOfflineFaculty(username, password) {
+  const loginError = $("loginError");
+  const demoFaculty = (typeof defaultFacultyList === "undefined" ? [] : defaultFacultyList)
+    .find(f => String(f.username || "").toLowerCase() === username);
+
+  if (!demoFaculty || demoFaculty.password !== password) {
+    loginError.textContent = "Offline sign-in only supports the built-in demo faculty accounts.";
+    return;
+  }
+
+  const facultyList = data.facultyList || (data.facultyList = []);
+  let fac = facultyList.find(f => f.id === demoFaculty.id);
+  if (!fac) {
+    fac = { ...demoFaculty };
+    delete fac.password;
+    facultyList.push(fac);
+    persist();
+  }
+
+  const status = fac.status || "Active";
+  if (status !== "Active") {
+    loginError.textContent = `This faculty account is currently ${status.toLowerCase()}. Please contact the administrator.`;
+    return;
+  }
+
+  currentUser = { id: fac.id, name: fac.name, role: "Faculty" };
+  if (typeof bindActiveFaculty === "function") bindActiveFaculty(fac.id);
+  saveSession();
+  openFacultyPortal();
+  toast("Signed in with the demo account. Database features are unavailable offline.");
 }
 
 function logout() {
