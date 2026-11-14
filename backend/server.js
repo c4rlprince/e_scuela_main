@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const bcrypt = require('bcryptjs');
+const path = require('path');
 const pool = require('./config/db');
 const enrollmentRoutes = require('./routes/enrollmentRoutes');
 const studentRoutes = require('./routes/studentRoutes');
@@ -633,6 +634,17 @@ app.post('/api/attendance', async (req, res) => {
         console.error('Error saving attendance:', error);
         return res.status(500).json({ message: 'Could not save attendance.' });
     }
+});
+
+const frontendRoot = path.resolve(__dirname, '..');
+app.get('/', (req, res) => {
+    res.sendFile(path.join(frontendRoot, 'index.html'));
+});
+app.use('/css', express.static(path.join(frontendRoot, 'css'), { dotfiles: 'deny' }));
+app.use('/js', express.static(path.join(frontendRoot, 'js'), { dotfiles: 'deny' }));
+app.use('/fa-icons', express.static(path.join(frontendRoot, 'fa-icons'), { dotfiles: 'deny' }));
+app.get(/^\/la(?:%20| )logo\.webp$/i, (req, res) => {
+    res.sendFile(path.join(frontendRoot, 'la logo.webp'));
 });
 
 // Centralized 404 Error Handling for unknown routes
