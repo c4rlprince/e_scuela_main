@@ -140,6 +140,10 @@ async function loginFaculty(username, password) {
   loginError.textContent = "";
 
   if (!API_BASE_URL) {
+    if (isGitHubPages) {
+      loginError.textContent = "The XAMPP backend is not configured. Start the backend and try again.";
+      return;
+    }
     return loginOfflineFaculty(username, password);
   }
 
@@ -151,7 +155,11 @@ async function loginFaculty(username, password) {
       body: JSON.stringify({ username, password })
     });
   } catch (error) {
-    console.warn("Faculty login API unavailable; trying a demo account offline:", error);
+    console.warn("Faculty login API unavailable:", error);
+    if (isGitHubPages) {
+      loginError.textContent = "Cannot reach XAMPP at localhost:3000. Start MySQL and the backend, then try again.";
+      return;
+    }
     return loginOfflineFaculty(username, password);
   }
 
@@ -166,6 +174,10 @@ async function loginFaculty(username, password) {
 
   if (!response.ok) {
     if (response.status >= 500) {
+      if (isGitHubPages) {
+        loginError.textContent = result.message || "The XAMPP backend could not access the database.";
+        return;
+      }
       return loginOfflineFaculty(username, password);
     }
     loginError.textContent = result.message || "Invalid username or password.";
