@@ -571,7 +571,8 @@ const val = id => $(id) ? $(id).value.trim() : "";
 
 // ==================== MYSQL BACKEND SYNC ====================
 const isLocalDevelopment = ["localhost", "127.0.0.1"].includes(window.location.hostname);
-const API_BASE_URL = (window.E_SCUELA_API_URL || (isLocalDevelopment ? "http://localhost:3000/api" : ""))
+const isGitHubPages = window.location.hostname === "c4rlprince.github.io";
+const API_BASE_URL = (window.E_SCUELA_API_URL || ((isLocalDevelopment || isGitHubPages) ? "http://localhost:3000/api" : ""))
   .replace(/\/+$/, "");
 
 async function syncFromDatabase() {
