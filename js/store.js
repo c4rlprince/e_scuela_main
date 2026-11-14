@@ -575,7 +575,7 @@ const API_BASE_URL = (window.E_SCUELA_API_URL || (isLocalDevelopment ? "http://l
   .replace(/\/+$/, "");
 
 async function syncFromDatabase() {
-  if (!API_BASE_URL) return;
+  if (!API_BASE_URL) return false;
 
   try {
     const res = await fetch(`${API_BASE_URL}/bootstrap`);
@@ -598,8 +598,10 @@ async function syncFromDatabase() {
       restoreSession();
     }
     console.log("✅ Synced e-scuela data from MySQL.");
+    return true;
   } catch (err) {
     console.warn("⚠️ Backend offline, using cached localStorage data:", err.message);
+    return false;
   }
 }
 

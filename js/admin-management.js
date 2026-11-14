@@ -683,6 +683,10 @@ function formatTime12Hour(time24) {
 }
 
 async function saveAdminSchedule() {
+  if (!API_BASE_URL) {
+    return toast("Schedule changes require a configured backend connected to MySQL.");
+  }
+
   const facultyId = val("schFaculty");
   const fac = (data.facultyList || []).find(f => f.id === facultyId);
   if (!fac) return toast("Please select a faculty member.");
@@ -736,12 +740,14 @@ async function saveAdminSchedule() {
     const result = await res.json();
     if (!res.ok) return toast(result.message || "Failed to save schedule.");
 
-    if (typeof syncFromDatabase === "function") await syncFromDatabase();
+    const synced = typeof syncFromDatabase === "function" && await syncFromDatabase();
     if ($("schStartTime")) $("schStartTime").value = "";
     if ($("schEndTime")) $("schEndTime").value = "";
     if ($("schRoom")) $("schRoom").value = "";
     renderAll();
-    toast(`Schedule added for ${fac.name} (${subject})`);
+    toast(synced
+      ? `Schedule added for ${fac.name} (${subject})`
+      : `Schedule saved for ${fac.name} (${subject}), but the list could not refresh from MySQL.`);
   } catch (err) {
     console.error("Save schedule error:", err);
     toast("Backend server offline. Could not save schedule to MySQL.");
@@ -762,14 +768,25 @@ function promptRemoveAdminSchedule(schId) {
 }
 
 async function executeRemoveAdminSchedule(schId) {
+  if (!API_BASE_URL) {
+    return toast("Schedule changes require a configured backend connected to MySQL.");
+  }
+
   try {
-    await fetch(`${API_BASE_URL}/schedules/${encodeURIComponent(schId)}`, { method: "DELETE" });
-    if (typeof syncFromDatabase === "function") await syncFromDatabase();
+    const response = await fetch(`${API_BASE_URL}/schedules/${encodeURIComponent(schId)}`, { method: "DELETE" });
+    const result = await response.json();
+    if (!response.ok) {
+      return toast(result.message || "Could not remove schedule from MySQL.");
+    }
+
+    const synced = typeof syncFromDatabase === "function" && await syncFromDatabase();
     renderAll();
-    toast("Class schedule removed.");
+    toast(synced
+      ? "Class schedule removed."
+      : "Schedule removed from MySQL, but the list could not refresh.");
   } catch (err) {
     console.error("Delete schedule error:", err);
-    toast("Backend server offline. Could not remove schedule.");
+    toast("Could not remove schedule from MySQL. Check the backend connection and try again.");
   }
 }
 

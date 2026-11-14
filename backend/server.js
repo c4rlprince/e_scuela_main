@@ -465,7 +465,10 @@ app.post('/api/schedules', async (req, res) => {
 // DELETE /api/schedules/:id
 app.delete('/api/schedules/:id', async (req, res) => {
     try {
-        await pool.execute('DELETE FROM class_schedules WHERE schedule_id = ?', [req.params.id]);
+        const [result] = await pool.execute('DELETE FROM class_schedules WHERE schedule_id = ?', [req.params.id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Schedule not found in MySQL.' });
+        }
         return res.status(200).json({ message: 'Schedule removed.' });
     } catch (error) {
         console.error('Error deleting schedule:', error);
