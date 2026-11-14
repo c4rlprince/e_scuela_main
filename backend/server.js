@@ -10,7 +10,7 @@ const studentRoutes = require('./routes/studentRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const allowedOrigins = new Set([
-    'https://c4rlprince.github.io',
+    'https://c4lrprince.github.io',
     'http://localhost:5500',
     'http://127.0.0.1:5500',
     ...(process.env.FRONTEND_ORIGINS || '')
