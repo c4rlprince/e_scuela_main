@@ -12,13 +12,7 @@ const PORT = process.env.PORT || 3000;
 
 // Security and Utility Middleware
 app.use(helmet());
-app.use(cors({
-    origin(origin, callback) {
-        const isLocalOrigin = !origin || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-        const isGitHubPagesOrigin = origin === 'https://c4rlprince.github.io';
-        callback(null, isLocalOrigin || isGitHubPagesOrigin);
-    }
-}));
+app.use(cors());
 app.use(express.json());
 
 app.use('/api/enrollments', enrollmentRoutes);
