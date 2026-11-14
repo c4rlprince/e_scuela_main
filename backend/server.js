@@ -3,37 +3,16 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const bcrypt = require('bcryptjs');
-const path = require('path');
 const pool = require('./config/db');
 const enrollmentRoutes = require('./routes/enrollmentRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const allowedOrigins = new Set([
-    'https://c4lrprince.github.io',
-    'http://localhost:5500',
-    'http://127.0.0.1:5500',
-    ...(process.env.FRONTEND_ORIGINS || '')
-        .split(',')
-        .map(origin => origin.trim())
-        .filter(Boolean)
-]);
 
 // Security and Utility Middleware
 app.use(helmet());
-app.use((req, res, next) => {
-    if (
-        allowedOrigins.has(req.get('Origin')) &&
-        req.get('Access-Control-Request-Private-Network') === 'true'
-    ) {
-        res.setHeader('Access-Control-Allow-Private-Network', 'true');
-    }
-    next();
-});
-app.use(cors({
-    origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin))
-}));
+app.use(cors());
 app.use(express.json());
 
 app.use('/api/enrollments', enrollmentRoutes);
@@ -636,22 +615,11 @@ app.post('/api/attendance', async (req, res) => {
     }
 });
 
-const frontendRoot = path.resolve(__dirname, '..');
-app.get('/', (req, res) => {
-    res.sendFile(path.join(frontendRoot, 'index.html'));
-});
-app.use('/css', express.static(path.join(frontendRoot, 'css'), { dotfiles: 'deny' }));
-app.use('/js', express.static(path.join(frontendRoot, 'js'), { dotfiles: 'deny' }));
-app.use('/fa-icons', express.static(path.join(frontendRoot, 'fa-icons'), { dotfiles: 'deny' }));
-app.get(/^\/la(?:%20| )logo\.webp$/i, (req, res) => {
-    res.sendFile(path.join(frontendRoot, 'la logo.webp'));
-});
-
 // Centralized 404 Error Handling for unknown routes
 app.use((req, res) => {
     res.status(404).json({ message: 'API Endpoint not found.' });
 });
 
-app.listen(PORT, '127.0.0.1', () => {
+app.listen(PORT, () => {
     console.log(`🚀 Server initialized on port ${PORT}`);
 });
