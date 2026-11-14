@@ -651,15 +651,22 @@ async function postFacultyAnnouncement() {
     content
   };
 
+  let savedLocally = false;
+  let timeoutId;
   try {
+    if (!API_BASE_URL) throw new Error("Static deployment detected");
+
+    const controller = new AbortController();
+    timeoutId = setTimeout(() => controller.abort(), 2500);
     const response = await fetch(`${API_BASE_URL}/announcements`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...notice, isEdit: Boolean(editId) })
+      body: JSON.stringify({ ...notice, isEdit: Boolean(editId) }),
+      signal: controller.signal
     });
-    const result = await response.json();
     if (!response.ok) {
-      return toast(result.message || "Could not save announcement to MySQL.");
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result.message || "Backend rejected request");
     }
 
     if (editId) {
@@ -669,16 +676,27 @@ async function postFacultyAnnouncement() {
       data.announcements.unshift(notice);
     }
     if (typeof syncFromDatabase === "function") await syncFromDatabase();
-    persist();
-    resetFacultyAnnouncementForm();
-    renderFacultyAnnouncements();
-    if (typeof renderAdminAnnouncements === "function") renderAdminAnnouncements();
-    if (typeof renderAdminDashboardAnnouncements === "function") renderAdminDashboardAnnouncements();
-    toast(editId ? "Announcement updated successfully." : "Announcement posted successfully.");
   } catch (err) {
-    console.error("Save faculty announcement error:", err);
-    toast("Could not save announcement to MySQL. Check the backend connection and try again.");
+    console.warn("Announcement backend unavailable; saving locally instead:", err);
+    if (editId) {
+      const idx = data.announcements.findIndex(a => a.id === editId);
+      data.announcements[idx] = notice;
+    } else {
+      data.announcements.unshift(notice);
+    }
+    savedLocally = true;
+  } finally {
+    clearTimeout(timeoutId);
   }
+
+  persist();
+  resetFacultyAnnouncementForm();
+  renderFacultyAnnouncements();
+  if (typeof renderAdminAnnouncements === "function") renderAdminAnnouncements();
+  if (typeof renderAdminDashboardAnnouncements === "function") renderAdminDashboardAnnouncements();
+  toast(savedLocally
+    ? `Announcement ${editId ? "updated" : "posted"} (Saved locally).`
+    : editId ? "Announcement updated successfully." : "Announcement posted successfully.");
 }
 
 function resetAdminAnnouncementForm() {
